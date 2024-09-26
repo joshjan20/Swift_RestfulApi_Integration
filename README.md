@@ -1,93 +1,42 @@
-To call `let postsViewController = PostsViewController()` from another view controller, such as `ViewController.swift`, and then push it onto a navigation stack, you need to set up your view controllers correctly and ensure you have a navigation controller in place. Below is a step-by-step guide to achieve this:
+To create a Swift application that calls an API and displays the items in a UITableView without using Storyboards, you can follow these steps:
 
-### Step-by-Step Implementation
+Step 1: Create a New Swift Project
+Step 2: Set Up Your API Model
+Step 3: Create the TableView Controller
+Step 4: Set Up the App Delegate
+Step 5: Run Your Application
 
-1. **Create a Main View Controller**: First, make sure you have a main view controller from which you want to navigate to `PostsViewController`.
+### Complete Implementation
 
-2. **Update the App Delegate**: Ensure the root view controller is a navigation controller, so you can push other view controllers onto it.
+#### 1. Create a New Swift Project
 
-3. **Implement the Navigation Logic**: In your main view controller, implement the code to instantiate and push `PostsViewController`.
+- Open Xcode and create a new project.
+- Select **App** under the iOS section and click **Next**.
+- Name your project (e.g., `APITableViewApp`), choose **Swift** as the language, and select **UIKit** for the interface.
+- Click **Next**, choose a location to save the project, and click **Create**.
 
-### Implementation
+#### 2. Create the Data Model
 
-#### 1. Update Your `AppDelegate.swift`
+First, create a model to represent the data you'll be fetching. For this example, we'll use a placeholder API that returns a list of posts.
 
-Make sure your `AppDelegate.swift` is set up to start with a navigation controller:
+1. **Create a Swift file** named `Post.swift`:
 
 ```swift
-import UIKit
+import Foundation
 
-@main
-class AppDelegate: UIResponder, UIApplicationDelegate {
-
-    var window: UIWindow?
-
-    func application(_ application: UIApplication,
-                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        
-        window = UIWindow(frame: UIScreen.main.bounds)
-        
-        // Initialize the main view controller
-        let mainViewController = ViewController() // Assuming this is your main view controller
-        
-        // Initialize UINavigationController with mainViewController as root
-        let navigationController = UINavigationController(rootViewController: mainViewController)
-        
-        // Set the root view controller
-        window?.rootViewController = navigationController
-        window?.makeKeyAndVisible()
-        
-        return true
-    }
+struct Post: Codable {
+    let userId: Int
+    let id: Int
+    let title: String
+    let body: String
 }
 ```
 
-#### 2. Create Your Main View Controller
+### 3. Create the View Controller with TableView
 
-Now, create a new view controller file (let's say `ViewController.swift`) and add a button to it. When this button is pressed, it will push `PostsViewController`.
+Next, create a `UIViewController` subclass that will contain the `UITableView`.
 
-```swift
-import UIKit
-
-class ViewController: UIViewController {
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        view.backgroundColor = .white
-        title = "Main View"
-        
-        // Create a button to navigate to PostsViewController
-        let navigateButton = UIButton(type: .system)
-        navigateButton.setTitle("Go to Posts", for: .normal)
-        navigateButton.addTarget(self, action: #selector(navigateToPosts), for: .touchUpInside)
-        navigateButton.translatesAutoresizingMaskIntoConstraints = false
-        
-        view.addSubview(navigateButton)
-        
-        // Set up button constraints
-        NSLayoutConstraint.activate([
-            navigateButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            navigateButton.centerYAnchor.constraint(equalTo: view.centerYAnchor)
-        ])
-    }
-
-    @objc func navigateToPosts() {
-        // Instantiate PostsViewController
-        let postsViewController = PostsViewController()
-        
-        // Push PostsViewController onto the navigation stack
-        navigationController?.pushViewController(postsViewController, animated: true)
-    }
-}
-```
-
-### 3. Ensure PostsViewController is Set Up
-
-Make sure your `PostsViewController` is defined properly as discussed in the previous messages.
-
-#### Example of `PostsViewController.swift`
-
-Here’s a recap of what your `PostsViewController` should look like:
+1. **Create a new Swift file** named `PostsViewController.swift`:
 
 ```swift
 import UIKit
@@ -96,19 +45,12 @@ class PostsViewController: UIViewController, UITableViewDelegate, UITableViewDat
     
     var tableView: UITableView!
     var posts: [Post] = []
-    var activityIndicator: UIActivityIndicatorView!
 
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Posts"
         view.backgroundColor = .white
         
-        // Set up the activity indicator
-        activityIndicator = UIActivityIndicatorView(style: .large)
-        activityIndicator.center = view.center
-        activityIndicator.hidesWhenStopped = true
-        view.addSubview(activityIndicator)
-
         // Set up the table view
         tableView = UITableView()
         tableView.delegate = self
@@ -131,16 +73,10 @@ class PostsViewController: UIViewController, UITableViewDelegate, UITableViewDat
 
     func fetchPosts() {
         guard let url = URL(string: "https://jsonplaceholder.typicode.com/posts") else { return }
-        
-        // Start the activity indicator
-        activityIndicator.startAnimating()
 
         let task = URLSession.shared.dataTask(with: url) { (data, response, error) in
             if let error = error {
                 print("Error fetching posts: \(error)")
-                DispatchQueue.main.async {
-                    self.activityIndicator.stopAnimating()
-                }
                 return
             }
             guard let data = data else { return }
@@ -150,13 +86,9 @@ class PostsViewController: UIViewController, UITableViewDelegate, UITableViewDat
                 DispatchQueue.main.async {
                     self.posts = posts
                     self.tableView.reloadData()
-                    self.activityIndicator.stopAnimating() // Stop the indicator when done
                 }
             } catch let jsonError {
                 print("Error decoding JSON: \(jsonError)")
-                DispatchQueue.main.async {
-                    self.activityIndicator.stopAnimating()
-                }
             }
         }
         task.resume()
@@ -176,11 +108,47 @@ class PostsViewController: UIViewController, UITableViewDelegate, UITableViewDat
 }
 ```
 
-### 4. Run Your Application
+### 4. Set Up the App Delegate
 
-- Build and run your application.
-- When you tap the "Go to Posts" button on the main view, it should navigate to the `PostsViewController` and display the list of posts fetched from the API.
+Now, set the `PostsViewController` as the root view controller in your `AppDelegate.swift` file.
+
+1. **Modify `AppDelegate.swift`**:
+
+```swift
+import UIKit
+
+@main
+class AppDelegate: UIResponder, UIApplicationDelegate {
+
+    var window: UIWindow?
+
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        
+        window = UIWindow(frame: UIScreen.main.bounds)
+        let postsViewController = PostsViewController()
+        let navigationController = UINavigationController(rootViewController: postsViewController)
+        
+        window?.rootViewController = navigationController
+        window?.makeKeyAndVisible()
+        
+        return true
+    }
+}
+```
+
+### 5. Run Your Application
+
+- Select a simulator or a physical device.
+- Click the **Run** button (▶️) in Xcode to build and run your app.
+
+### Explanation of Key Parts
+
+- **Data Model**: The `Post` struct conforms to `Codable`, which allows easy encoding and decoding of JSON data.
+- **Network Request**: The `fetchPosts` function makes a network request to the given URL, retrieves the data, and decodes it into an array of `Post` objects.
+- **TableView**: The `UITableView` is set up to display the title of each post. The data source methods provide the necessary data to the table view.
+- **UI Setup**: The table view is added to the view hierarchy and constraints are applied to make it fill the entire screen.
 
 ### Conclusion
 
-This setup allows you to call `let postsViewController = PostsViewController()` from `ViewController.swift` and push it onto the navigation stack. If you encounter any issues or need further assistance, feel free to ask! 😊
+This implementation fetches posts from a sample API, parses the JSON response, and displays the titles in a table view without using Storyboards. If you have any further questions or need additional help, feel free to ask! 😊
